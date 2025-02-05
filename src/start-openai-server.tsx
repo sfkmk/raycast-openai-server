@@ -22,6 +22,15 @@ export default async function Command() {
 
   // Start an HTTP server
   const server = http.createServer(async (req, res) => {
+    // If the request is a kill command, shut down the server.
+    if (req.method === "POST" && req.url === "/kill") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Server shutting down" }));
+      server.close();
+      return;
+    }
+
+    // Existing endpoint for chat completions.
     if (req.method !== "POST" || req.url !== "/v1/chat/completions") {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Endpoint not found" }));
