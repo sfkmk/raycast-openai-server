@@ -60,7 +60,7 @@ export default async function Command() {
         const streamMode = requestData.stream === true;
 
         // Call AI.ask with the prompt.
-        const answer = AI.ask(prompt);
+        const answer = await AI.ask(prompt);
 
         if (streamMode) {
           // Streaming response: set headers for SSE.

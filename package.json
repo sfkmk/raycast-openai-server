@@ -12,8 +12,13 @@
       "title": "Start OpenAI Server",
       "description": "Start OpenAI Server",
       "mode": "no-view"
+    },
+    {
+      "name": "kill-openai-server",
+      "title": "Kill OpenAI Server",
+      "description": "Kills the running OpenAI server.",
+      "mode": "no-view"
     }
-    // TODO: kill server command is missing, AI!
   ],
   "dependencies": {
     "@raycast/api": "^1.90.0",

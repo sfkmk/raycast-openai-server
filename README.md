@@ -10,7 +10,6 @@
 
     curl -X POST http://localhost:1235/kill
 
-
 ## Goal
 
 Create a Raycast Extension that provides an OpenAI compatible API server
