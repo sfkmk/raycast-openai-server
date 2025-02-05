@@ -2,16 +2,17 @@ import { getPreferenceValues, showToast, Toast, AI } from "@raycast/api";
 import http from "http";
 
 interface Preferences {
-  port: number;
+  port: string;
 }
 
 export default function Command() {
   const { port } = getPreferenceValues<Preferences>();
-  if (typeof port !== "number" || Number.isNaN(port)) {
+  const portNumber = Number(port);
+  if (Number.isNaN(portNumber)) {
     showToast({
       style: Toast.Style.Failure,
-      title: "Missing Port",
-      message: "The port is not defined. Please set a valid port in the preferences."
+      title: "Invalid Port",
+      message: "The port is invalid. Please set a valid number in the preferences."
     });
     return;
   }
@@ -48,8 +49,8 @@ export default function Command() {
     });
   });
 
-  server.listen(port, () => {
-    console.log(`Server is listening on port ${port}`);
+  server.listen(portNumber, () => {
+    console.log(`Server is listening on port ${portNumber}`);
   });
 
 }
