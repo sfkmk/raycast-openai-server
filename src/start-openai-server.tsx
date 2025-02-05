@@ -22,9 +22,9 @@ export default async function Command() {
 
   // Start an HTTP server
   const server = http.createServer(async (req, res) => {
-    if (req.method !== "POST") {
-      res.writeHead(405, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Only POST method is allowed" }));
+    if (req.method !== "POST" || req.url !== "/v1/chat/completions") {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Endpoint not found" }));
       return;
     }
 
@@ -33,18 +33,43 @@ export default async function Command() {
     req.on("end", async () => {
       try {
         const requestData = JSON.parse(body);
-        const prompt = requestData.prompt;
-        if (!prompt) {
+        if (!requestData.messages || !Array.isArray(requestData.messages)) {
           res.writeHead(400, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "Missing 'prompt' in request body" }));
+          res.end(JSON.stringify({ error: "Missing or invalid 'messages' in request body" }));
           return;
         }
 
-        // Call AI.ask with the provided prompt.
+        const lastMessage = requestData.messages[requestData.messages.length - 1];
+        const prompt = lastMessage.content;
+        if (!prompt) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Missing 'content' in the last message" }));
+          return;
+        }
+
+        // Call AI.ask with the prompt.
         const answer = await AI.ask(prompt);
 
+        // Construct an OpenAI compatible response.
+        const responseBody = {
+          id: "chatcmpl-xyz", // You can generate a dynamic id if needed.
+          object: "chat.completion",
+          created: Math.floor(Date.now() / 1000),
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: "assistant",
+                content: answer
+              },
+              finish_reason: "stop"
+            }
+          ],
+          usage: {}
+        };
+
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ answer }));
+        res.end(JSON.stringify(responseBody));
       } catch (err: any) {
         res.writeHead(500, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: err.message }));
