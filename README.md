@@ -6,4 +6,6 @@
 
 ## Goal
 
-Create a Raycast Extension () that provides an OpenAI compatible API server which internally calls AI.ask (https://developers.raycast.com/api-reference/ai#ai.ask) to
+Create a Raycast Extension that provides an OpenAI compatible API server
+- internally calls AI.ask (https://developers.raycast.com/api-reference/ai#ai.ask) to.. . It's a no-view command.
+- Port is configurable in the extension preferences: https://developers.raycast.com/api-reference/preferences
