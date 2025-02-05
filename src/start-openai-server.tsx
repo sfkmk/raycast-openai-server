@@ -47,32 +47,65 @@ export default async function Command() {
           return;
         }
 
-        // Call AI.ask with the prompt and stream the response.
+        // Determine whether streaming is enabled.
+        const streamMode = requestData.stream === true;
+
+        // Call AI.ask with the prompt.
         const answer = AI.ask(prompt);
 
-        // Set headers for a streaming response (using Server-Sent Events).
-        res.writeHead(200, {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          "Connection": "keep-alive",
-        });
+        if (streamMode) {
+          // Streaming response: set headers for SSE.
+          res.writeHead(200, {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+          });
 
-        // When data is available, send it as a streaming chunk.
-        answer.on("data", (data: Buffer | string) => {
-          res.write("data: " + JSON.stringify({ choices: [{ delta: { content: data.toString() } }] }) + "\n\n");
-        });
+          answer.on("data", (data: Buffer | string) => {
+            res.write("data: " + JSON.stringify({
+              id: "chatcmpl-xyz",
+              object: "chat.completion",
+              created: Math.floor(Date.now() / 1000),
+              choices: [{ delta: { content: data.toString() } }]
+            }) + "\n\n");
+          });
 
-        // On stream end, signal completion.
-        answer.on("end", () => {
-          res.write("data: [DONE]\n\n");
-          res.end();
-        });
+          answer.on("end", () => {
+            res.write("data: " + JSON.stringify({
+              id: "chatcmpl-xyz",
+              object: "chat.completion",
+              created: Math.floor(Date.now() / 1000),
+              choices: [{ delta: { content: "" } }],
+              finish_reason: "stop"
+            }) + "\n\n");
+            res.write("data: [DONE]\n\n");
+            res.end();
+          });
 
-        // Handle stream errors.
-        answer.on("error", (err: any) => {
-          res.write("data: " + JSON.stringify({ error: err.message }) + "\n\n");
-          res.end();
-        });
+          answer.on("error", (err: any) => {
+            res.write("data: " + JSON.stringify({ error: err.message }) + "\n\n");
+            res.end();
+          });
+        } else {
+          // Non-streaming mode: await the full response and send it as JSON.
+          const result = await answer;
+          const responseBody = {
+            id: "chatcmpl-xyz",
+            object: "chat.completion",
+            created: Math.floor(Date.now() / 1000),
+            choices: [{
+              index: 0,
+              message: {
+                role: "assistant",
+                content: result
+              },
+              finish_reason: "stop"
+            }],
+            usage: {}
+          };
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify(responseBody));
+        }
       } catch (err: any) {
         res.writeHead(500, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: err.message }));
