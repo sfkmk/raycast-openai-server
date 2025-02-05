@@ -5,8 +5,11 @@ interface Preferences {
   port: string;
 }
 
-export default function Command() {
-  const { port } = getPreferenceValues<Preferences>();
+export default async function Command() {
+  const preferences = getPreferenceValues<Preferences>();
+  console.log("Read preferences:", JSON.stringify(preferences));
+  const { port } = preferences;
+  console.log("Read port from preferences:", port);
   const portNumber = Number(port);
   if (Number.isNaN(portNumber)) {
     showToast({
@@ -53,4 +56,10 @@ export default function Command() {
     console.log(`Server is listening on port ${portNumber}`);
   });
 
+  // Listen for the 'close' event and print a message when the server shuts down.
+  server.on("close", () => {
+    console.log("Server has been shut down.");
+  });
+
+  await new Promise(() => {});
 }
