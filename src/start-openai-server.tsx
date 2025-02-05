@@ -79,7 +79,7 @@ export default async function Command() {
             }) + "\n\n");
           });
 
-          answer.on("end", () => {
+          answer.then(() => {
             res.write("data: " + JSON.stringify({
               id: "chatcmpl-xyz",
               object: "chat.completion",
@@ -89,9 +89,7 @@ export default async function Command() {
             }) + "\n\n");
             res.write("data: [DONE]\n\n");
             res.end();
-          });
-
-          answer.on("error", (err: any) => {
+          }).catch((err: any) => {
             res.write("data: " + JSON.stringify({ error: err.message }) + "\n\n");
             res.end();
           });
