@@ -1,4 +1,4 @@
-import { getPreferenceValues, showToast, Toast, AI, MenuBarExtra } from "@raycast/api";
+import { getPreferenceValues, showToast, Toast, AI } from "@raycast/api";
 import http from "http";
 
 interface Preferences {
@@ -41,12 +41,7 @@ export default function Command() {
   });
 
   server.listen(port, () => {
-    console.log(`Server listening on port ${port}`);
+    console.log(`Server is listening on port ${port}`);
   });
 
-  return (
-    <MenuBarExtra icon="https://github.githubassets.com/favicons/favicon.png" tooltip="OpenAI Server Status">
-      <MenuBarExtra.Item title="Server Running" />
-    </MenuBarExtra>
-  );
 }
