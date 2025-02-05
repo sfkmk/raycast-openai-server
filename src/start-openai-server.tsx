@@ -7,6 +7,14 @@ interface Preferences {
 
 export default function Command() {
   const { port } = getPreferenceValues<Preferences>();
+  if (typeof port !== "number" || Number.isNaN(port)) {
+    showToast({
+      style: Toast.Style.Failure,
+      title: "Missing Port",
+      message: "The port is not defined. Please set a valid port in the preferences."
+    });
+    return;
+  }
 
   // Start an HTTP server
   const server = http.createServer(async (req, res) => {
