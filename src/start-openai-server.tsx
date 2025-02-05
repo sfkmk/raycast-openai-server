@@ -47,29 +47,32 @@ export default async function Command() {
           return;
         }
 
-        // Call AI.ask with the prompt.
-        const answer = await AI.ask(prompt);
+        // Call AI.ask with the prompt and stream the response.
+        const answer = AI.ask(prompt);
 
-        // Construct an OpenAI compatible response.
-        const responseBody = {
-          id: "chatcmpl-xyz", // You can generate a dynamic id if needed.
-          object: "chat.completion",
-          created: Math.floor(Date.now() / 1000),
-          choices: [
-            {
-              index: 0,
-              message: {
-                role: "assistant",
-                content: answer
-              },
-              finish_reason: "stop"
-            }
-          ],
-          usage: {}
-        };
+        // Set headers for a streaming response (using Server-Sent Events).
+        res.writeHead(200, {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive",
+        });
 
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(responseBody));
+        // When data is available, send it as a streaming chunk.
+        answer.on("data", (data: Buffer | string) => {
+          res.write("data: " + JSON.stringify({ choices: [{ delta: { content: data.toString() } }] }) + "\n\n");
+        });
+
+        // On stream end, signal completion.
+        answer.on("end", () => {
+          res.write("data: [DONE]\n\n");
+          res.end();
+        });
+
+        // Handle stream errors.
+        answer.on("error", (err: any) => {
+          res.write("data: " + JSON.stringify({ error: err.message }) + "\n\n");
+          res.end();
+        });
       } catch (err: any) {
         res.writeHead(500, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: err.message }));
