@@ -1,4 +1,4 @@
-import { getPreferenceValues, showToast, Toast, AI } from "@raycast/api";
+import { getPreferenceValues, showToast, Toast, AI, MenuBarExtra } from "@raycast/api";
 import http from "http";
 
 interface Preferences {
