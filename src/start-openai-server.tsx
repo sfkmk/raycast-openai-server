@@ -5,7 +5,7 @@ interface Preferences {
   port: number;
 }
 
-export default async function Command() {
+export default function Command() {
   const { port } = getPreferenceValues<Preferences>();
 
   // Start an HTTP server
@@ -43,4 +43,10 @@ export default async function Command() {
   server.listen(port, () => {
     console.log(`Server listening on port ${port}`);
   });
+
+  return (
+    <MenuBarExtra icon="https://github.githubassets.com/favicons/favicon.png" tooltip="OpenAI Server Status">
+      <MenuBarExtra.Item title="Server Running" />
+    </MenuBarExtra>
+  );
 }
