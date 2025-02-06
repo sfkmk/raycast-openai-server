@@ -64,18 +64,20 @@ export default function Command() {
           onAction={checkServerStatus}
         />
       </MenuBarExtra.Section>
-      
+
       <MenuBarExtra.Section title="Controls">
         {serverStatus.running ? (
           <MenuBarExtra.Item title="Stop Server" onAction={stopServer} />
         ) : (
           <MenuBarExtra.Item title="Start Server" onAction={startServer} />
         )}
-        <MenuBarExtra.Item
-          title="Refresh Status"
-          shortcut={{ modifiers: ["cmd"], key: "r" }}
-          onAction={checkServerStatus}
-        />
+        <MenuBarExtra.Section title="Refresh">
+          <MenuBarExtra.Item
+            title="Refresh Status"
+            shortcut={{ modifiers: ["cmd"], key: "r" }}
+            onAction={checkServerStatus}
+          />
+        </MenuBarExtra.Section>
       </MenuBarExtra.Section>
     </MenuBarExtra>
   );
