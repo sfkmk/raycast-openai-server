@@ -1,6 +1,5 @@
 import { MenuBarExtra, showToast, Toast, getPreferenceValues, AI, launchCommand, LaunchType } from "@raycast/api";
 import { useState, useEffect } from "react";
-import http from "http";
 
 interface Preferences {
   port: string;
@@ -71,13 +70,11 @@ export default function Command() {
         ) : (
           <MenuBarExtra.Item title="Start Server" onAction={startServer} />
         )}
-        <MenuBarExtra.Section title="Refresh">
-          <MenuBarExtra.Item
-            title="Refresh Status"
-            shortcut={{ modifiers: ["cmd"], key: "r" }}
-            onAction={checkServerStatus}
-          />
-        </MenuBarExtra.Section>
+        <MenuBarExtra.Item
+          title="Refresh Status"
+          shortcut={{ modifiers: ["cmd"], key: "r" }}
+          onAction={checkServerStatus}
+        />
       </MenuBarExtra.Section>
     </MenuBarExtra>
   );
