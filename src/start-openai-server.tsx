@@ -30,6 +30,15 @@ export default async function Command() {
       return;
     }
 
+    if (req.method === "GET" && req.url === "/v1/models") {
+      const models = Object.values(AI.Model).map((modelName, index) => {
+        return { id: index.toString(), name: modelName };
+      });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(models));
+      return;
+    }
+
     // Existing endpoint for chat completions.
     if (req.method !== "POST" || req.url !== "/v1/chat/completions") {
       res.writeHead(404, { "Content-Type": "application/json" });
@@ -42,6 +51,7 @@ export default async function Command() {
     req.on("end", async () => {
       try {
         const requestData = JSON.parse(body);
+        const model = requestData.model || "OpenAI_GPT4o-mini";
         if (!requestData.messages || !Array.isArray(requestData.messages)) {
           res.writeHead(400, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: "Missing or invalid 'messages' in request body" }));
@@ -59,8 +69,10 @@ export default async function Command() {
         // Determine whether streaming is enabled.
         const streamMode = requestData.stream === true;
 
+        console.log("Will send prompt to model:", model, prompt);
+
         // Call AI.ask with the prompt.
-        const answer = await AI.ask(prompt);
+        const answer = AI.ask(prompt, {model: AI.Model[model]});
 
         if (streamMode) {
           // Streaming response: set headers for SSE.
@@ -74,6 +86,7 @@ export default async function Command() {
             res.write("data: " + JSON.stringify({
               id: "chatcmpl-xyz",
               object: "chat.completion",
+              model: model,
               created: Math.floor(Date.now() / 1000),
               choices: [{ delta: { content: data.toString() } }]
             }) + "\n\n");
@@ -84,6 +97,7 @@ export default async function Command() {
               id: "chatcmpl-xyz",
               object: "chat.completion",
               created: Math.floor(Date.now() / 1000),
+              model: model,
               choices: [{ delta: { content: "" } }],
               finish_reason: "stop"
             }) + "\n\n");
@@ -100,6 +114,7 @@ export default async function Command() {
             id: "chatcmpl-xyz",
             object: "chat.completion",
             created: Math.floor(Date.now() / 1000),
+            model: model,
             choices: [{
               index: 0,
               message: {
