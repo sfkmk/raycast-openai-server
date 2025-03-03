@@ -51,7 +51,7 @@ export default async function Command() {
     req.on("end", async () => {
       try {
         const requestData = JSON.parse(body);
-        // AI! Log the full request body for debugging
+        console.log("Request body:", JSON.stringify(requestData, null, 2));
         const model = requestData.model || "OpenAI_GPT4o-mini";
         if (!requestData.messages || !Array.isArray(requestData.messages)) {
           res.writeHead(400, { "Content-Type": "application/json" });
