@@ -2,13 +2,35 @@
 
 ## Development
 
-    OPENAI_API_BASE=http://localhost:1234/v1 aider --copy-paste --watch-files --model openai/mistral-small-24b-instruct-2501
+    npm run dev
 
     curl -N -X POST http://localhost:1235/v1/chat/completions \
       -H "Content-Type: application/json" \
-      -d '{"stream": true, "messages": [{"role": "user", "content": "Why is the president?"}]}'
+      -d '{"model": "google-gemini-2.0-flash", "stream": true, "messages": [{"role": "user", "content": "Who is the president?"}]}'
+
+    curl http://localhost:1235/v1/models | jq .
 
     curl -X POST http://localhost:1235/kill
+
+### Aider
+
+Bootstrap with raycast AI chat window
+
+    OPENAI_API_BASE=http://localhost:1234/v1 aider --copy-paste --model openai/mistral-small-24b-instruct-2501
+
+Eating your own dogfood - use OpenAI server
+
+    OPENAI_API_BASE=http://localhost:1235/v1 aider --model openai/together-deepseek-ai/DeepSeek-R1
+    OPENAI_API_BASE=http://localhost:1235/v1 aider --model openai/openai_o1-o3-mini
+    OPENAI_API_BASE=http://localhost:1235/v1 aider --watch-files --model openai/anthropic-claude-sonnet
+
+Add stuff to aider
+
+    /read-only README.md
+    /add src/*.tsx src/*.ts package.json
+    https://developers.raycast.com/api-reference/menu-bar-commands
+
+
 
 ## Goal
 
