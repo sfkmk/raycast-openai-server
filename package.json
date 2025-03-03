@@ -11,7 +11,7 @@
       "name": "start-openai-server",
       "title": "Start OpenAI Server",
       "description": "Start OpenAI Server",
-      "mode": "menu-bar"
+      "mode": "no-view"
     },
     {
       "name": "kill-openai-server",
