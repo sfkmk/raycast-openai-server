@@ -9,7 +9,7 @@ This extension creates a local HTTP server that acts as a relay between external
 ## Features
 
 - **OpenAI API Compatible**: Full compatibility with OpenAI's chat completions API
-- **Authentication Required**: Secure API key authentication for all requests
+- **Authentication Required**: API key authentication for all requests
 - **Streaming Support**: Real-time streaming responses for chat completions
 - **Health Monitoring**: Built-in health endpoint for status checking
 - **Model Selection**: Access to all available Raycast AI models
@@ -23,10 +23,10 @@ Install this extension in Raycast.
 
 ### 2. Configure Preferences
 
-Before first use, configure the required settings in Raycast preferences:
+Before first use, configure the required settings in Raycast preferences or use the defaults:
 
-- **Server Port**: The port where the server will run (default: 1235)
-- **API Key**: A secure API key that applications must use to authenticate (default: sk-11223344556677889900)
+- **Server Port**: The port where the server will run
+- **API Key**: A secure API key that applications must use to authenticate
 
 Both fields are required and must be set before starting the server.
 
@@ -55,8 +55,8 @@ curl -N -X POST http://localhost:1235/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-api-key-here" \
   -d '{
-    "model": "google-gemini-2.0-flash", 
-    "stream": true, 
+    "model": "google-gemini-2.0-flash",
+    "stream": true,
     "messages": [{"role": "user", "content": "Tell me a story"}]
   }'
 
@@ -72,7 +72,7 @@ curl http://localhost:1235/health
 
 #### Aider (AI Coding Assistant)
 
-Use Raycast AI as the backend for Aider, an AI-powered coding tool:
+Use Raycast AI as the backend for Aider:
 
 ```bash
 # Basic usage
@@ -84,13 +84,6 @@ OPENAI_API_KEY=your-api-key-here OPENAI_API_BASE=http://localhost:1235/v1 aider 
 # Watch mode with file monitoring
 OPENAI_API_KEY=your-api-key-here OPENAI_API_BASE=http://localhost:1235/v1 aider --watch-files --model openai/anthropic-claude-sonnet
 ```
-
-#### VS Code / Cursor / Zed
-
-Configure your editor's AI extension to use:
-- **API Base URL**: `http://localhost:1235/v1`
-- **API Key**: Your configured API key
-- **Model**: Any Raycast AI model (e.g., `google-gemini-2.0-flash`)
 
 #### Custom Applications
 
@@ -165,13 +158,6 @@ curl -X POST http://localhost:1235/v1/chat/completions \
   -H "Authorization: Bearer your-api-key-here" \
   -d '{"model": "google-gemini-2.0-flash", "messages": [{"role": "user", "content": "Test message"}]}'
 ```
-
-## Security Notes
-
-- The API key configured in preferences is required for all API calls
-- The server only listens on localhost by default
-- No data is stored or logged beyond basic error handling
-- All requests are forwarded to Raycast AI with your local authentication
 
 ## Troubleshooting
 
