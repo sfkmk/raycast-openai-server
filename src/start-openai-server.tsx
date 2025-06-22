@@ -1,32 +1,80 @@
 import { getPreferenceValues, showToast, Toast, AI } from "@raycast/api";
 import http from "http";
+import { queryHealth } from "./utils/queryHealth";
 
 interface Preferences {
   port: string;
+  apiKey: string;
 }
 
 export default async function Command() {
   const preferences = getPreferenceValues<Preferences>();
-  console.log("Read preferences:", JSON.stringify(preferences));
-  const { port } = preferences;
-  console.log("Read port from preferences:", port);
+  const { port, apiKey } = preferences;
   const portNumber = Number(port);
+
   if (Number.isNaN(portNumber)) {
-    showToast({
+    await showToast({
       style: Toast.Style.Failure,
       title: "Invalid Port",
-      message: "The port is invalid. Please set a valid number in the preferences."
+      message: "The port is invalid. Please set a valid number in the preferences.",
+    });
+    return;
+  }
+
+  if (!apiKey || apiKey.trim() === "") {
+    await showToast({
+      style: Toast.Style.Failure,
+      title: "API Key is required",
+      message: "Please set a valid API key in the preferences.",
+    });
+    return;
+  }
+
+  // Check if server is already running using /health endpoint
+  const health = await queryHealth(port);
+  if (health && health.status === "running") {
+    await showToast({
+      style: Toast.Style.Failure,
+      title: "Server already running",
+      message: `A server is already running on port ${port}.`,
     });
     return;
   }
 
   // Start an HTTP server
   const server = http.createServer(async (req, res) => {
-    // If the request is a kill command, shut down the server.
+    // Check API Key header, exclude /kill and /health endpoints from this check
+    if (!(req.method === "POST" && req.url === "/kill") && !(req.method === "GET" && req.url === "/health")) {
+      const authHeader = req.headers["authorization"] || req.headers["Authorization"];
+      if (!authHeader || typeof authHeader !== "string" || !authHeader.startsWith("Bearer ")) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Unauthorized: Missing or invalid Authorization header" }));
+        return;
+      }
+      const token = authHeader.substring("Bearer ".length);
+      if (token !== apiKey) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Unauthorized: API key mismatch" }));
+        return;
+      }
+    }
+
     if (req.method === "POST" && req.url === "/kill") {
+      // Send response first, then close server
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "Server shutting down" }));
-      server.close();
+      res.end(JSON.stringify({ message: "Server has been shut down." }));
+
+      // Close server after response is sent
+      setTimeout(() => {
+        server.close();
+      }, 100);
+      return;
+    }
+
+    if (req.method === "GET" && req.url === "/health") {
+      // Health endpoint providing server status for monitoring
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "running" }));
       return;
     }
 
@@ -47,11 +95,12 @@ export default async function Command() {
     }
 
     let body = "";
-    req.on("data", (chunk) => { body += chunk; });
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
     req.on("end", async () => {
       try {
         const requestData = JSON.parse(body);
-        console.log("Request body:", JSON.stringify(requestData, null, 2));
         const model = requestData.model || "OpenAI_GPT4o-mini";
         if (!requestData.messages || !Array.isArray(requestData.messages)) {
           res.writeHead(400, { "Content-Type": "application/json" });
@@ -70,44 +119,54 @@ export default async function Command() {
         // Determine whether streaming is enabled.
         const streamMode = requestData.stream === true;
 
-        console.log("Will send prompt to model:", model, prompt);
-
         // Call AI.ask with the prompt.
-        const answer = AI.ask(prompt, {model: AI.Model[model]});
+        const answer = AI.ask(prompt, { model: AI.Model[model as keyof typeof AI.Model] });
 
         if (streamMode) {
           // Streaming response: set headers for SSE.
           res.writeHead(200, {
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
+            Connection: "keep-alive",
           });
 
           answer.on("data", (data: Buffer | string) => {
-            res.write("data: " + JSON.stringify({
-              id: "chatcmpl-xyz",
-              object: "chat.completion",
-              model: model,
-              created: Math.floor(Date.now() / 1000),
-              choices: [{ delta: { content: data.toString() } }]
-            }) + "\n\n");
+            res.write(
+              "data: " +
+                JSON.stringify({
+                  id: "chatcmpl-xyz",
+                  object: "chat.completion",
+                  model: model,
+                  created: Math.floor(Date.now() / 1000),
+                  choices: [{ delta: { content: data.toString() } }],
+                }) +
+                "\n\n",
+            );
           });
 
-          answer.then(() => {
-            res.write("data: " + JSON.stringify({
-              id: "chatcmpl-xyz",
-              object: "chat.completion",
-              created: Math.floor(Date.now() / 1000),
-              model: model,
-              choices: [{ delta: { content: "" } }],
-              finish_reason: "stop"
-            }) + "\n\n");
-            res.write("data: [DONE]\n\n");
-            res.end();
-          }).catch((err: any) => {
-            res.write("data: " + JSON.stringify({ error: err.message }) + "\n\n");
-            res.end();
-          });
+          answer
+            .then(() => {
+              res.write(
+                "data: " +
+                  JSON.stringify({
+                    id: "chatcmpl-xyz",
+                    object: "chat.completion",
+                    created: Math.floor(Date.now() / 1000),
+                    model: model,
+                    choices: [{ delta: { content: "" } }],
+                    finish_reason: "stop",
+                  }) +
+                  "\n\n",
+              );
+              res.write("data: [DONE]\n\n");
+              res.end();
+            })
+            .catch((err: unknown) => {
+              res.write(
+                "data: " + JSON.stringify({ error: err instanceof Error ? err.message : String(err) }) + "\n\n",
+              );
+              res.end();
+            });
         } else {
           // Non-streaming mode: await the full response and send it as JSON.
           const result = await answer;
@@ -116,34 +175,56 @@ export default async function Command() {
             object: "chat.completion",
             created: Math.floor(Date.now() / 1000),
             model: model,
-            choices: [{
-              index: 0,
-              message: {
-                role: "assistant",
-                content: result
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: "assistant",
+                  content: result,
+                },
+                finish_reason: "stop",
               },
-              finish_reason: "stop"
-            }],
-            usage: {}
+            ],
+            usage: {},
           };
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(JSON.stringify(responseBody));
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: err.message }));
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
       }
     });
   });
 
   server.listen(portNumber, () => {
-    console.log(`Server is listening on port ${portNumber}`);
+    showToast({
+      style: Toast.Style.Success,
+      title: "Server started",
+      message: `Server is running on port ${portNumber}`,
+    });
   });
 
-  // Listen for the 'close' event and print a message when the server shuts down.
+  server.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE") {
+      showToast({
+        style: Toast.Style.Failure,
+        title: "Port in use",
+        message: `Port ${portNumber} is already in use. Please choose another port.`,
+      });
+    } else {
+      showToast({
+        style: Toast.Style.Failure,
+        title: "Server error",
+        message: err.message,
+      });
+    }
+  });
+
   server.on("close", () => {
     console.log("Server has been shut down.");
   });
 
+  // Keep the command alive to prevent the server from shutting down
   await new Promise(() => {});
 }
